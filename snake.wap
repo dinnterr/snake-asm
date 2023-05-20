@@ -16,5 +16,7 @@ DebAssemble=/c /coff /Cp /nologo /Fm /Zi /Zd
 DebLink=/SUBSYSTEM:CONSOLE /DEBUG /VERSION:4.0
 DebOut=
 [FILES]
-1=C:\WinAsm\Programs\snake/main.asm
-2=C:\WinAsm\Programs\snake/main.inc
+1=main.asm
+2=interface.asm
+3=engine.asm
+4=main.inc
