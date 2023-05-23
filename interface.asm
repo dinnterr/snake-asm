@@ -38,7 +38,7 @@ MainMenu proc uses ebx esi edi
 			.elseif al == 's' && choice == 1
 				inc dword ptr[choice]		;go to 'Exit'
 				mov dword ptr[cExit],cWhite		;change colors - Exit - white
-				mov dword ptr[cStart],cBrown	;Start - brown		
+				mov dword ptr[cStart],cBrown	;Start - brown	
 			.endif
 		.endw
 		;when enter is pressed

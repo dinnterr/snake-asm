@@ -1,7 +1,7 @@
 include main.inc
+include obj_snake.asm
 include engine.asm
 include interface.asm
-
 
 .code
 
@@ -18,12 +18,13 @@ start:
 Main proc
 	fn MainMenu 					;show and process menu
 	.while closeConsole == 0   		;while user in menu
+		fn GameInit
 		.while gameOver == 1        ;while game is runnig
-		
-		
-		
-		
-		
+			
+			
+			fn GameUpdate
+			fn GameController
+				
 			
 		.endw
 		;when game is over show menu
@@ -35,10 +36,10 @@ Main proc
 Main endp
 
 SetWindowSize proc uses ebx esi edi wd:DWORD,ht:DWORD
-	fn GetStdHandle,-11			;to get handle of output descriptor 
-	push eax					;push the handle in the stack
+	fn GetStdHandle,-11						;to get handle of output descriptor 
+	push eax								;push the handle in the stack
 	mov ebx,ht
-	shl ebx,16					;shift the value to the left so that the height value is in highest word
+	shl ebx,16								;shift the value to the left so that the height value is in highest word
 	or ebx,wd								;bit by bit add the width
 	fn SetConsoleScreenBufferSize,eax,ebx	;set buffer size
 	pop eax									;get handle of output descriptor from stack
