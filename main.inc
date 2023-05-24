@@ -4,6 +4,7 @@ Main				proto
 SetWindowSize		proto :DWORD,:DWORD
 HideCursor			proto
 gotoxy				proto :DWORD,:DWORD
+SetColor 			proto :DWORD
 
 ;list of colors
 	cBlack 				= 0
@@ -22,7 +23,7 @@ gotoxy				proto :DWORD,:DWORD
 	LightMagenta 		= 13
 	cYellow				= 14
 	cWhite 				= 15
-	
+	cPanel				= 48
 
 .const
 	MAX_WIDTH 		equ 82	;width of window

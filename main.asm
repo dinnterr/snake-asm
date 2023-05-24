@@ -1,4 +1,5 @@
 include main.inc
+include obj_fruit.asm
 include obj_snake.asm
 include engine.asm
 include interface.asm
@@ -12,8 +13,8 @@ start:
 	fn HideCursor
 	fn Main						
 	
-	fn SetConsoleTextAttribute,rv(GetStdHandle,-11),LightGreen ;set color of 'press any key to continue...'
-	inkey
+	;fn SetConsoleTextAttribute,rv(GetStdHandle,-11),LightGreen ;set color of 'press any key to continue...'
+	;inkey
 	exit
 Main proc
 	fn MainMenu 					;show and process menu
@@ -65,7 +66,10 @@ gotoxy proc uses ebx esi edi x:DWORD,y:DWORD ;to set cursor coordinates
 	fn SetConsoleCursorPosition,rv(GetStdHandle,-11),ebx	
 	Ret
 gotoxy endp
-
+SetColor proc uses ebx esi edi cref:DWORD
+	fn SetConsoleTextAttribute,rv(GetStdHandle,-11),cref
+	Ret
+SetColor endp
 
 end start
 
