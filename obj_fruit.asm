@@ -1,4 +1,4 @@
-CreateFruit		proto
+gotoxyCreateFruit		proto
 DrawFruit		proto
 FRUIT struct
 	x	dword ?
@@ -18,18 +18,33 @@ blink		dd ?
 
 .code
 CreateFruit proc uses ebx esi edi
-	mov dword ptr[fruit.x],20
-	mov dword ptr[fruit.y],20
-	mov byte ptr[fruit.sprite],1
-	mov blink,0
-
-	Ret
+	LOCAL x:DWORD
+	LOCAL y:DWORD
+	
+@@Do:	
+	fn RangedRand,1,80		;get random x
+	mov dword ptr[x],eax	;save it in local x
+	
+	fn RangedRand,1,30		;get random y
+	mov dword ptr[y],eax	;save it in local y
+	fn CheckPosition,x,y
+	cmp al,20h				;compare if it a space
+	je @F					;break
+	jmp @@Do 				;else continue
+	@@:
+		mov eax,dword ptr[x]
+		mov dword ptr[fruit.x],eax
+		mov eax,dword ptr[y]
+		mov dword ptr[fruit.y],eax
+		mov byte ptr[fruit.sprite],1
+		mov blink,0
+		Ret
 CreateFruit endp
 DrawFruit proc uses ebx esi edi
 	inc blink
 	.if blink >= TIME_BLINK
 		.if byte ptr[fruit.sprite] == 1
-			mov byte ptr[fruit.sprite],2
+			mov byte ptr[fruit.sprite],4
 		.else
 			mov byte ptr[fruit.sprite],1
 		.endif

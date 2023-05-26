@@ -1,10 +1,11 @@
 
-Keyboard_check_pressed		proto
+Keyboard_check_pressed		proto		;return control only after pressed key
 GameInit					proto
 GameUpdate					proto
+GamePause					proto
+GameOver					proto
 DrawLevel					proto :DWORD
 Keyboard_check				proto 
-CheckPosition				proto :DWORD,:DWORD
 
 GameController				proto
 
@@ -32,6 +33,9 @@ score			dd 0
 score_old		dd 0
 szLevel_1		db "level_1.txt", 0
 
+szGameOver	db "GAME OVER",0
+szBack		db "Press ENTER to return to Main Menu",0
+
 .code
 Keyboard_check_pressed proc uses ebx esi edi	;for Main Menu
 	fn FlushConsoleInputBuffer,rv(GetStdHandle,-10)  ;clear input buffer
@@ -45,10 +49,13 @@ Keyboard_check_pressed proc uses ebx esi edi	;for Main Menu
 	Ret
 Keyboard_check_pressed endp
 GameInit proc uses ebx edi esi
+	fn crt_srand,rv(crt_time,0)		;crt_time return in eax current time of system, then srand start with this value
+	
 	movzx eax, byte ptr[nLevel] 	;save nLevel into AL (after clear eax)
 	fn DrawLevel, eax				;draw map of level
 	or eax,eax 						; if eax == 0 -> read file error 
 	je @@Error
+	
 	fn DrawPanel					;draw info panel
 	fn SetColor,LightGreen
 	fn gotoxy,1,32
@@ -59,7 +66,6 @@ GameInit proc uses ebx edi esi
 	fn DrawSnake,snake.x,snake.y
 	
 	fn CreateFruit
-	
 	
 @@Ret:
 	Ret		
@@ -100,10 +106,6 @@ GameController proc uses ebx esi edi
 	fn KeyEvent
 	fn DrawEvent	;when user pressed key - redraw changed position and update score
 	fn StepEvent	;game time step - so that redraws arent from each processor cycle, but are controlled
-
-
-
-
 
 	Ret
 GameController endp
@@ -178,7 +180,7 @@ GameUpdate proc uses ebx esi edi
 			mov eax,dword ptr[y]
 			dec eax
 			fn CheckPosition,x,eax		;after that in eax we have the character from screen where is cursor will be after key pressed
-			.if al == 20h || al == fruit.sprite		;if it is a space
+			.if al == 20h || al == fruit.sprite		;if it is a space or fruit
 				dec dword ptr[snake.y]	;change coordinates
 			.elseif al == '#'
 				mov byte ptr[snake.direction],STOP 		;then stop
@@ -187,7 +189,7 @@ GameUpdate proc uses ebx esi edi
 			mov eax,dword ptr[y]
 			inc eax
 			fn CheckPosition,x,eax		;after that in eax we have the character from screen where is cursor will be after key pressed
-			.if al == 20h|| al == fruit.sprite			;if it is a space
+			.if al == 20h|| al == fruit.sprite			;if it is a space or fruit
 				inc dword ptr[snake.y]	;change coordinates
 			.elseif al == '#'
 				mov byte ptr[snake.direction],STOP 		;then stop
@@ -196,7 +198,7 @@ GameUpdate proc uses ebx esi edi
 			mov eax,dword ptr[x]
 			dec eax
 			fn CheckPosition,eax,y		;after that in eax we have the character from screen where is cursor will be after key pressed
-			.if al == 20h || al == fruit.sprite			;if it is a space
+			.if al == 20h || al == fruit.sprite			;if it is a space or fruit
 				dec dword ptr[snake.x]	;change coordinates
 			.elseif al == '#'
 				mov byte ptr[snake.direction],STOP 		;then stop
@@ -205,7 +207,7 @@ GameUpdate proc uses ebx esi edi
 			mov eax,dword ptr[x]
 			inc eax
 			fn CheckPosition,eax,y		;after that in eax we have the character from screen where is cursor will be after key pressed
-			.if al == 20h || al == fruit.sprite			;if it is a space
+			.if al == 20h || al == fruit.sprite			;if it is a space or fruit
 				inc dword ptr[snake.x]	;change coordinates
 			.elseif al == '#'
 				mov byte ptr[snake.direction],STOP 		;then stop
@@ -223,7 +225,8 @@ GameUpdate proc uses ebx esi edi
 	.if eax == fruit.x && ebx == fruit.y
 		.if nTail < MAX_TAIL
 			inc nTail
-			
+			inc nPickup		;increase number of eaten fruits
+			fn CreateFruit 
 			add score,10
 			
 		.endif
@@ -232,11 +235,72 @@ GameUpdate proc uses ebx esi edi
 	
 	Ret
 GameUpdate endp
+GamePause proc uses ebx esi edi
+	LOCAL hOut:DWORD
+	mov hOut,rv(GetStdHandle,-11)
+@@Pause:
+	fn SetColor,LightRed
+	fn gotoxy,37,13
+	fn crt_puts,"PAUSE"
+	fn Sleep,500	;0.5s
+	fn SetColor,LightCyan
+	fn gotoxy,37,13
+	fn crt_puts,"pause"
+	fn Sleep,500	
+	fn Keyboard_check
+	cmp al,'p'
+	jne @@Pause		;if p not pressed still do pause
+	;===clear labels
+	fn gotoxy,37,13
+	fn crt_puts,"     "
+	Ret
+GamePause endp
+GameOver proc uses ebx esi edi
+	fn crt_system,offset szCls		;clean screen
+	fn SetColor,LightRed
+	xor ebx,ebx
+	inc ebx 			;ebx=1
+	mov edi,35
+@@Do:
+	fn SetColor,LightRed
+	fn gotoxy,35,ebx
+	fn crt_puts,offset szGameOver
+	dec ebx
+	fn gotoxy,35,ebx
+	fn crt_puts,"         "
+	inc ebx
+	
+	fn SetColor,LightGray			;second label
+	fn gotoxy,23,edi
+	fn crt_printf,offset szBack
+	inc edi
+	fn gotoxy,23,edi
+	fn crt_printf,"                                  "
+	dec edi
+	
+	fn Sleep,25
+	dec edi
+	inc ebx
+	cmp ebx,18
+	jne @@Do		;if label yet isnt on the center - continue
+@@L0:
+	fn Keyboard_check_pressed
+	cmp al,KEY_ENTER
+	jne @@L0
+	Ret
+GameOver endp
 StepEvent proc uses ebx esi edi
+	.if nPickup == SPD_STEP
+		mov nPickup,0
+		dec snake.speed
+		.if snake.speed <= 0 	;when speed is max fast - get it slow again
+			mov snake.speed,MAX_SPEED
+		.endif
+	.endif
 	.if snake.direction == STOP			;if snake met wall
 	@@GameOver:
 		mov byte ptr[gameOver],0		;game over
-		;========gameover menu later
+		fn GameOver
 		jmp @@Ret
 	.endif
 	;=====Catching tail
@@ -266,10 +330,11 @@ StepEvent endp
 KeyEvent proc uses ebx esi edi
 	fn Keyboard_check
 	.if	byte ptr[bKey] == KEY_ESC
+		mov dword ptr[score],0 ;============
 		mov byte ptr[gameOver],0		;make game over 0 so that mean that we exit the game
 		mov byte ptr[closeConsole],1	;and close console
 	.elseif byte ptr[bKey] == 'p'		;pause
-	
+		fn GamePause
 	.elseif byte ptr[bKey] == 'w' || byte ptr[bKey] == 's' || byte ptr[bKey] == 'a' || byte ptr[bKey] == 'd'
 		mov byte ptr[snake.direction],al		
 	.endif
@@ -299,8 +364,8 @@ DrawScore proc uses ebx esi edi
 	mov ebx,score
 	.if ebx > score_old
 		fn gotoxy,8,32
+		fn SetColor,LightGreen
 		print ustr$(ebx)				;macros ustr(unsigned) - converts a numeric value to an unsigned string representation and return a pointer and next print 
-	
 		mov dword ptr[score_old],ebx	;save new value of score
 	.endif
 	
@@ -316,23 +381,4 @@ DrawPanel proc uses ebx esi edi
 	
 	Ret
 DrawPanel endp
-CheckPosition proc uses ebx esi edi	x:DWORD,y:DWORD
-	LOCAL cRead:DWORD
-	LOCAL buffer:DWORD
-	;LOCAL cbi:CONSOLE_SCREEN_BUFFER_INFO	;console buffer info
-	
-	mov dword ptr[buffer],0
-	fn gotoxy,x,y
-	
-	mov ebx,y
-	shl ebx,16	;move y in senior rank by shift left
-	or ebx,x
-	lea edi,cRead								;get adress of cRead
-	lea esi,buffer								;and buffer
-	
-	fn GetStdHandle,-11		;get descriptor
-	fn ReadConsoleOutputCharacter,eax,esi,1,ebx,edi ;(descriptor, addr of buffer, numbers of read characters,coordinates of cursor,addr of variable)
-	;=====After that in the first byte of buffer we got read character from screen where our cursor is
-	mov eax,dword ptr[buffer]	;get it in eax
-	Ret
-CheckPosition endp
+

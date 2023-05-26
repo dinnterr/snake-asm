@@ -70,6 +70,26 @@ SetColor proc uses ebx esi edi cref:DWORD
 	fn SetConsoleTextAttribute,rv(GetStdHandle,-11),cref
 	Ret
 SetColor endp
+CheckPosition proc uses ebx esi edi	x:DWORD,y:DWORD
+	LOCAL cRead:DWORD
+	LOCAL buffer:DWORD
+	;LOCAL cbi:CONSOLE_SCREEN_BUFFER_INFO	;console buffer info
+	
+	mov dword ptr[buffer],0
+	fn gotoxy,x,y
+	
+	mov ebx,y
+	shl ebx,16	;move y in senior rank by shift left
+	or ebx,x
+	lea edi,cRead								;get adress of cRead
+	lea esi,buffer								;and buffer
+	
+	fn GetStdHandle,-11		;get descriptor
+	fn ReadConsoleOutputCharacter,eax,esi,1,ebx,edi ;(descriptor, addr of buffer, numbers of read characters,coordinates of cursor,addr of variable)
+	;=====After that in the first byte of buffer we got read character from screen where our cursor is
+	mov eax,dword ptr[buffer]	;get it in eax
+	Ret
+CheckPosition endp
 
 end start
 

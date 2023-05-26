@@ -19,8 +19,9 @@ TAIL struct
 TAIL ends
 
 .const
-	MAX_SPEED		equ 10 	;smaller number - faster speed
+	MAX_SPEED		equ 10	;smaller number - faster speed
 	MAX_TAIL		equ	500
+	SPD_STEP		equ 5
 	
 	
 .data?
@@ -28,6 +29,7 @@ TAIL ends
 	tail		TAIL MAX_TAIL dup(<>)
 	spd_count	dd ?
 	nTail		dd ?	;"length" of tail
+	nPickup		dd ?    ;number of eaten fruits
 
 .code
 CreateSnake	proc uses ebx esi edi
@@ -41,6 +43,7 @@ CreateSnake	proc uses ebx esi edi
 	mov dword ptr[score_old],0
 	fn ClearTail
 	mov dword ptr[nTail],0
+	mov dword ptr[nPickup],0
 	Ret
 CreateSnake endp
 DrawSnake proc uses ebx esi edi x:DWORD,y:DWORD
