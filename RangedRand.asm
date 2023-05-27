@@ -1,9 +1,7 @@
 RangedRand		proto :DWORD,:DWORD
 
-
 .data
 rand_max	dq 32768.0 ;(RAND_MAX+1)
-
 
 .code
 RangedRand proc uses ebx esi edi _min:DWORD,_max:DWORD 

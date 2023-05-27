@@ -6,33 +6,24 @@ include interface.asm
 
 .code
 
-
 start:
 	fn SetConsoleTitle,"Snake"	;Title of project
 	fn SetWindowSize,MAX_WIDTH,MAX_HEIGHT
 	fn HideCursor
 	fn Main						
-	
-	;fn SetConsoleTextAttribute,rv(GetStdHandle,-11),LightGreen ;set color of 'press any key to continue...'
-	;inkey
 	exit
 Main proc
 	fn MainMenu 					;show and process menu
 	.while closeConsole == 0   		;while user in menu
 		fn GameInit
 		.while gameOver == 1        ;while game is runnig
-			
-			
 			fn GameUpdate
 			fn GameController
-				
-			
 		.endw
 		;when game is over show menu
 		fn MainMenu 
 	.endw
 	fn gotoxy,25,35 	;set Cursor on x,y for showing 'press any key to continue...' on the center bottom
-
 	Ret
 Main endp
 
@@ -47,7 +38,6 @@ SetWindowSize proc uses ebx esi edi wd:DWORD,ht:DWORD
 	fn SetConsoleWindowInfo,eax,1,offset srect	;set window size
 	Ret
 SetWindowSize endp
-
 HideCursor proc uses ebx esi edi
 	LOCAL ci:CONSOLE_CURSOR_INFO 	
 	fn GetStdHandle,-11						;to get handle of output descriptor 
@@ -73,7 +63,6 @@ SetColor endp
 CheckPosition proc uses ebx esi edi	x:DWORD,y:DWORD
 	LOCAL cRead:DWORD
 	LOCAL buffer:DWORD
-	;LOCAL cbi:CONSOLE_SCREEN_BUFFER_INFO	;console buffer info
 	
 	mov dword ptr[buffer],0
 	fn gotoxy,x,y
@@ -90,11 +79,4 @@ CheckPosition proc uses ebx esi edi	x:DWORD,y:DWORD
 	mov eax,dword ptr[buffer]	;get it in eax
 	Ret
 CheckPosition endp
-
 end start
-
-
-
-
-
-

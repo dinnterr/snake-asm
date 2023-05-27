@@ -1,28 +1,23 @@
-
-DrawSnake		proto :DWORD,:DWORD
-ClearTail		proto
-DrawTail		proto
 CreateSnake		proto
+DrawSnake		proto :DWORD,:DWORD
+DrawTail		proto
+ClearTail		proto
 SNAKE struct
 	x		dword ?
 	y		dword ?
 	direction  	db ?
 			   	db ? ;for making even number of bytes
 	speed	dword ?
-	
 SNAKE ends
 TAIL struct
 	x		dword ?
 	y		dword ?
-
-
 TAIL ends
 
 .const
 	MAX_SPEED		equ 10	;smaller number - faster speed
 	MAX_TAIL		equ	500
 	SPD_STEP		equ 5
-	
 	
 .data?
 	snake		SNAKE <>
