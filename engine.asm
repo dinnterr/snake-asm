@@ -1,20 +1,19 @@
-
 Keyboard_check_pressed		proto		;return control only after pressed key
-GameInit					proto
-GameUpdate					proto
-GamePause					proto
-GameOver					proto
-DrawLevel					proto :DWORD
 Keyboard_check				proto 
 
+GameInit					proto
+GameUpdate					proto
 GameController				proto
+GamePause					proto
+GameOver					proto
 
-KeyEvent					proto
+DrawLevel					proto :DWORD
 DrawEvent					proto
 DrawScore					proto
 DrawPanel					proto
-StepEvent					proto
 
+StepEvent					proto
+KeyEvent					proto
 
 .const
 ;keys
@@ -48,6 +47,16 @@ Keyboard_check_pressed proc uses ebx esi edi	;for Main Menu
 	mov byte ptr[bKey],al  ;save pressed key in bKeys
 	Ret
 Keyboard_check_pressed endp
+Keyboard_check proc uses ebx esi edi
+	mov byte ptr[bKey],31h			;clear buffer of pressed key
+	fn crt__kbhit					;check key pressed
+	or eax,eax						;if eax=0 => key not pressed
+	je @@Ret
+	fn crt__getch					;else get pressed key from buffer
+	mov byte ptr[bKey],al  			;save pressed key in bKeys
+@@Ret:
+	Ret
+Keyboard_check endp
 GameInit proc uses ebx edi esi
 	fn crt_srand,rv(crt_time,0)		;crt_time return in eax current time of system, then srand start with this value
 	
@@ -60,6 +69,7 @@ GameInit proc uses ebx edi esi
 	fn SetColor,LightGreen
 	fn gotoxy,1,32
 	fn crt_printf,"Score: "
+	mov dword ptr[score],0 ;============
 	print ustr$(score)
 	
 	fn CreateSnake
@@ -77,38 +87,6 @@ GameInit proc uses ebx edi esi
 	fn Sleep, 2000					;make pause on 2sec
 	jmp @@Ret
 GameInit endp
-DrawLevel proc uses ebx edi esi nLvl:DWORD
-	LOCAL hFile:DWORD 			;for save descriptor of file
-	LOCAL buffer[256]:BYTE		;make local buffer for data of file
-	.if nLvl == 1
-		fn crt_fopen,offset	szLevel_1,"r"	;open file for read using c runtime library function (filename, mode)
-		or eax,eax					;if eax == 0 -> error
-		je @@Ret					;exit
-		mov dword ptr[hFile], eax	;else - move descriptor of file into hFile
-		push eax					;push descriptor into stack
-		fn SetColor,LightCyan	;make map another color
-		lea ebx,buffer				;ebx = address of buffer
-	@@While:
-		fn crt_fgets,ebx,256,hFile	;get file strings (buffer, buffer size, descriptor)	 
-		or eax,eax					;if there is end of file (eax == 0)
-		je @@CloseFile
-		fn crt_printf,eax			;print gotten string on console
-		jmp @@While
-	@@CloseFile:	
-		pop eax						;pop descriptor
-		fn crt_fclose,eax 			;close file using crt function
-		inc eax						;for correct processing error, eax = 1
-	.endif
-@@Ret:
-	Ret
-DrawLevel endp
-GameController proc uses ebx esi edi
-	fn KeyEvent
-	fn DrawEvent	;when user pressed key - redraw changed position and update score
-	fn StepEvent	;game time step - so that redraws arent from each processor cycle, but are controlled
-
-	Ret
-GameController endp
 GameUpdate proc uses ebx esi edi
 	LOCAL x:DWORD
 	LOCAL y:DWORD
@@ -212,9 +190,7 @@ GameUpdate proc uses ebx esi edi
 			.elseif al == '#'
 				mov byte ptr[snake.direction],STOP 		;then stop
 			.endif
-			
 		.endif
-		
 		mov spd_count,0
 	.endif
 	
@@ -228,13 +204,16 @@ GameUpdate proc uses ebx esi edi
 			inc nPickup		;increase number of eaten fruits
 			fn CreateFruit 
 			add score,10
-			
 		.endif
-	
 	.endif
-	
 	Ret
 GameUpdate endp
+GameController proc uses ebx esi edi
+	fn KeyEvent
+	fn DrawEvent	;when user pressed key - redraw changed position and update score
+	fn StepEvent	;game time step - so that redraws arent from each processor cycle, but are controlled
+	Ret
+GameController endp
 GamePause proc uses ebx esi edi
 	LOCAL hOut:DWORD
 	mov hOut,rv(GetStdHandle,-11)
@@ -289,6 +268,56 @@ GameOver proc uses ebx esi edi
 	jne @@L0
 	Ret
 GameOver endp
+DrawLevel proc uses ebx edi esi nLvl:DWORD
+	LOCAL hFile:DWORD 			;for save descriptor of file
+	LOCAL buffer[256]:BYTE		;make local buffer for data of file
+	.if nLvl == 1
+		fn crt_fopen,offset	szLevel_1,"r"	;open file for read using c runtime library function (filename, mode)
+		or eax,eax					;if eax == 0 -> error
+		je @@Ret					;exit
+		mov dword ptr[hFile], eax	;else - move descriptor of file into hFile
+		push eax					;push descriptor into stack
+		fn SetColor,LightCyan	;make map another color
+		lea ebx,buffer				;ebx = address of buffer
+	@@While:
+		fn crt_fgets,ebx,256,hFile	;get file strings (buffer, buffer size, descriptor)	 
+		or eax,eax					;if there is end of file (eax == 0)
+		je @@CloseFile
+		fn crt_printf,eax			;print gotten string on console
+		jmp @@While
+	@@CloseFile:	
+		pop eax						;pop descriptor
+		fn crt_fclose,eax 			;close file using crt function
+		inc eax						;for correct processing error, eax = 1
+	.endif
+@@Ret:
+	Ret
+DrawLevel endp
+DrawEvent proc uses ebx esi edi
+	.if nTail > 0
+		fn DrawTail
+	.endif
+	fn DrawSnake,snake.x,snake.y
+	fn DrawFruit
+	fn DrawScore					;show update score
+	Ret
+DrawEvent endp
+DrawScore proc uses ebx esi edi
+	mov ebx,score
+	.if ebx > score_old
+		fn gotoxy,8,32
+		fn SetColor,LightGreen
+		print ustr$(ebx)				;macros ustr(unsigned) - converts a numeric value to an unsigned string representation and return a pointer and next print 
+		mov dword ptr[score_old],ebx	;save new value of score
+	.endif
+	Ret
+DrawScore endp
+DrawPanel proc uses ebx esi edi
+	fn SetColor,cPanel
+	fn gotoxy,21,32
+	fn crt_printf,"Esc - back to menu, P - pause the game"
+	Ret
+DrawPanel endp
 StepEvent proc uses ebx esi edi
 	.if nPickup == SPD_STEP
 		mov nPickup,0
@@ -314,15 +343,12 @@ StepEvent proc uses ebx esi edi
 		.if eax == snake.x && edx == snake.y
 			jmp @@GameOver
 		.endif
-		
 		inc ebx
 		add esi,sizeof TAIL
 	@@For2:
 		cmp ebx,nTail
 		jb @@In2
 	.endif
-
-	
 @@Ret:
 	fn Sleep,MAX_STEP
 	Ret
@@ -340,45 +366,3 @@ KeyEvent proc uses ebx esi edi
 	.endif
 	Ret
 KeyEvent endp
-Keyboard_check proc uses ebx esi edi
-	mov byte ptr[bKey],31h			;clear buffer of pressed key
-	fn crt__kbhit					;check key pressed
-	or eax,eax						;if eax=0 => key not pressed
-	je @@Ret
-	fn crt__getch					;else get pressed key from buffer
-	mov byte ptr[bKey],al  			;save pressed key in bKeys
-@@Ret:
-	Ret
-Keyboard_check endp
-DrawEvent proc uses ebx esi edi
-	.if nTail > 0
-		fn DrawTail
-	.endif
-	fn DrawSnake,snake.x,snake.y
-	fn DrawFruit
-	fn DrawScore					;show update score
-	
-	Ret
-DrawEvent endp
-DrawScore proc uses ebx esi edi
-	mov ebx,score
-	.if ebx > score_old
-		fn gotoxy,8,32
-		fn SetColor,LightGreen
-		print ustr$(ebx)				;macros ustr(unsigned) - converts a numeric value to an unsigned string representation and return a pointer and next print 
-		mov dword ptr[score_old],ebx	;save new value of score
-	.endif
-	
-	
-	
-	Ret
-DrawScore endp
-
-DrawPanel proc uses ebx esi edi
-	fn SetColor,cPanel
-	fn gotoxy,21,32
-	fn crt_printf,"Esc - back to menu, P - pause the game"
-	
-	Ret
-DrawPanel endp
-

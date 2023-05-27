@@ -1,11 +1,10 @@
-gotoxyCreateFruit		proto
-DrawFruit		proto
+CreateFruit				proto
+DrawFruit				proto
 FRUIT struct
 	x	dword ?
 	y	dword ?
 	sprite	db ?
 	reserv	db ?
-
 FRUIT ends
 
 .const
@@ -14,7 +13,6 @@ TIME_BLINK		equ 10
 .data?
 fruit		FRUIT <>
 blink		dd ?
-
 
 .code
 CreateFruit proc uses ebx esi edi
@@ -53,7 +51,6 @@ DrawFruit proc uses ebx esi edi
 	fn gotoxy,fruit.x,fruit.y
 	fn SetColor,LightRed
 	movzx eax,fruit.sprite	
-	fn crt_putchar,eax	;square
-	
+	fn crt_putchar,eax	;square	
 	Ret
 DrawFruit endp
